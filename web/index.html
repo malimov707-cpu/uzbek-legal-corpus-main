@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="uz-Latn" data-theme="light">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#f6f5f0" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#10151a" media="(prefers-color-scheme: dark)" />
+  <meta name="description" content="Oʻzbekiston qonunlari asosida huquqiy maʼlumot va keyingi amaliy qadamlar." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>Huquqiy yordam — AI huquqiy maʼlumot</title>
+  <script>
+    // No-flash theme + language bootstrap (runs before paint).
+    (function () {
+      try {
+        var t = localStorage.getItem("huquqiy-yordam.theme.v1");
+        if (!t) t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = t;
+      } catch (e) { }
+    })();
+  </script>
+</head>
+
+<body>
+  <a class="skip-link" href="#main" data-i18n="skip.link">Asosiy mazmunga oʻtish</a>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Suhbatlar" data-i18n-aria="aria.sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none">
+            <path d="M16 4 5 9v1h22V9L16 4Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+            <path d="M8 12v10m5-10v10m6-10v10m5-10v10M5 25h22M4 28h24" stroke="currentColor" stroke-width="1.7"
+              stroke-linecap="round" />
+          </svg>
+        </div>
+        <div><strong data-i18n="app.name">Huquqiy yordam</strong><span data-i18n="app.tagline">AI huquqiy
+            maʼlumot</span></div>
+        <button id="mobile-close" class="mobile-close" type="button" aria-label="Suhbatlar panelini yopish"
+          data-i18n-aria="aria.closeSidebar">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+            <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+
+      <button id="new-chat" class="new-chat" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+          <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+        </svg>
+        <span data-i18n="chat.new">Yangi suhbat</span>
+      </button>
+      <div class="history-search">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+          <path d="m20 20-4.3-4.3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+          <path d="M18 10.5a7.5 7.5 0 1 1-15 0 7.5 0 0 1 15 0Z" stroke="currentColor" stroke-width="1.7"
+            stroke-linecap="round" />
+        </svg>
+        <input id="history-filter" type="search" placeholder="Suhbatlardan qidirish..."
+          aria-label="Suhbatlardan qidirish" data-i18n-placeholder="chat.searchPlaceholder"
+          data-i18n-aria="aria.searchHistory" />
+      </div>
+      <p class="history-heading" data-i18n="chat.historyHeading">SUHBATLAR</p>
+      <nav id="conversation-list" class="conversation-list" aria-label="Saqlangan suhbatlar"
+        data-i18n-aria="aria.history"></nav>
+      <div class="sidebar-bottom">
+        <p class="local-note"><span class="privacy-dot"></span> <span data-i18n="chat.localNote">Suhbatlar faqat shu
+            qurilmada saqlanadi</span></p>
+        <div class="sidebar-tools">
+          <button id="clear-history" class="text-button" type="button" data-i18n="chat.clearHistory">Barcha tarixni
+            tozalash</button>
+          <div class="lang-picker">
+            <button id="lang-button" class="lang-button" type="button" aria-haspopup="listbox" aria-expanded="false"
+              title="Til">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+                <path d="m3 5 8 15M11 5.5 15.5 20M2 9.5h10M15 3l5 13.5M17.8 11H22M14 21l4.5-9L23 21m-7.8-3h6.6"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span id="lang-label">UZ</span>
+            </button>
+            <div id="lang-menu" class="lang-menu" role="listbox" hidden>
+              <button type="button" role="option" data-lang="uz">Oʻzbek (lotin)</button>
+              <button type="button" role="option" data-lang="cyr">Ўзбек (кирилл)</button>
+              <button type="button" role="option" data-lang="ru">Русский</button>
+              <button type="button" role="option" data-lang="en">English</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+    <button id="sidebar-scrim" class="sidebar-scrim" type="button" aria-label="Suhbatlar panelini yopish"
+      data-i18n-aria="aria.closeSidebar" hidden></button>
+
+    <main id="main" class="main">
+      <header class="topbar">
+        <button id="mobile-history" class="mobile-history" type="button" aria-label="Saqlangan suhbatlarni ochish"
+          aria-expanded="false" data-i18n-aria="aria.openHistory">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+            <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+          </svg>
+        </button>
+        <button id="mobile-new-chat" class="mobile-new" type="button" aria-label="Yangi suhbat">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+        </button>
+        <div class="topbar-title"><span class="status-dot"></span><span data-i18n="chat.topTitle">Huquqiy suhbat</span>
+        </div>
+        <div class="topbar-actions">
+          <button id="theme-toggle" class="topbar-button" type="button" aria-label="Tema almashtirish"
+            data-i18n-aria="aria.theme">
+            <svg id="theme-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none">
+              <path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z" stroke="currentColor" stroke-width="1.65"
+                stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span id="theme-label" data-i18n="chat.themeLabel">Tungi rejim</span>
+          </button>
+          <button id="export-chat" class="topbar-button" type="button" disabled
+            aria-label="Suhbatni matn fayl qilib yuklab olish" data-i18n-aria="aria.export">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="1.65"
+                stroke-linecap="round" />
+              <path d="m7 10 5 5 5-5" stroke="currentColor" stroke-width="1.65" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <path d="M12 15V3" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" />
+            </svg>
+            <span data-i18n="chat.export">Yuklab olish</span>
+          </button>
+        </div>
+        <div class="snapshot-pill"><span class="snapshot-indicator"></span> <span data-i18n="chat.snapshotPill">Korpus:
+            2026-yil iyul</span></div>
+      </header>
+
+      <section id="chat" class="chat" aria-label="Suhbat" aria-live="polite" data-i18n-aria="aria.chat"></section>
+      <button id="scroll-bottom" class="scroll-bottom" type="button" aria-label="Eng pastga oʻtish"
+        data-i18n-aria="aria.scrollBottom" hidden>
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+          <path d="M12 5v14m-6-6 6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+            stroke-linejoin="round" />
+        </svg>
+      </button>
+      <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+
+      <footer class="composer-area">
+        <div class="legal-notice">
+          <svg aria-hidden="true" viewBox="0 0 20 20" fill="none">
+            <path d="M10 2.4 17 5v4.6c0 4.1-2.8 6.7-7 8-4.2-1.3-7-3.9-7-8V5l7-2.6Z" stroke="currentColor"
+              stroke-width="1.35" stroke-linejoin="round" />
+            <path d="M10 6.2v4.1m0 2.6h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+          <p data-i18n="chat.legalNotice">Bu AI huquqiy maʼlumot beradi, advokat emas. Javoblar yuridik maslahat yoki
+            ish natijasi kafolati emas. Qonunning amaldagi tahririni <a href="https://lex.uz" target="_blank"
+              rel="noopener noreferrer">lex.uz</a>dan tekshiring.</p>
+        </div>
+        <form id="composer" class="composer">
+          <label class="sr-only" for="message-input" data-i18n="aria.question">Huquqiy savolingiz</label>
+          <textarea id="message-input" rows="1" maxlength="12000"
+            placeholder="Vaziyatingizni oddiy tilda tushuntiring..." autocomplete="off"
+            data-i18n-placeholder="chat.placeholder"></textarea>
+          <div class="composer-bottom">
+            <span class="privacy-hint" data-i18n="chat.privacyHint">Pasport, JShShIR, karta yoki maxfiy hujjat
+              maʼlumotlarini yubormang.</span>
+            <div class="composer-actions">
+              <span id="char-count" class="char-count">0 / 12000</span>
+              <button id="send-button" class="send-button" type="submit" aria-label="Xabarni yuborish"
+                data-i18n-aria="aria.send">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 19V5m-6 6 6-6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                </svg>
+              </button>
+              <button id="stop-button" class="stop-button" type="button" aria-label="Javob tayyorlashni toʻxtatish"
+                data-i18n-aria="aria.stop" hidden>
+                <span aria-hidden="true"></span>
+              </button>
+            </div>
+          </div>
+        </form>
+        <p class="snapshot-note" data-i18n="chat.snapshotNote">Manbalar 2026-yil iyul snapshotidan. Qonun oʻzgargan
+          boʻlishi mumkin — amaldagi holatni lex.uzdan tekshiring.</p>
+      </footer>
+    </main>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>

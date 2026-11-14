@@ -1,0 +1,525 @@
+LOYIHA HISOBOTI
+Oʻzbekiston huquqiy korpusi asosidagi AI huquqiy yordam veb-ilovasi
+
+Hisobot sanasi: 2026-11-13
+Loyiha katalogi: uzbek-legal-corpus-main
+Hisobot tili: oʻzbek tili
+
+========================================================================
+1. QISQACHA
+========================================================================
+
+Ushbu repoda mavjud huquqiy korpus va RAG backend saqlangan holda,
+fuqarolarga Oʻzbekiston qonunchiligi haqida tabiiy, koʻp bosqichli suhbatda
+maʼlumot berishga moʻljallangan veb-ilova yaratildi.
+
+Ilova yangi yuridik javob generatori yoki soxta demo AI yaratmaydi. U mavjud
+FastAPI RAG serveriga ulanadi; huquqiy javoblar uchun mavjud retrieval,
+modda matnlari, retrieval mode va citation maʼlumotlaridan foydalanadi.
+Backend yoki model ishlamasa, interfeys aniq xato va qayta urinish imkonini
+koʻrsatadi; uydirma huquqiy javob ko‘rsatmaydi.
+
+Muhim holat: web frontend, TypeScript build va frontend testlari ishga
+tushirilib tekshirildi. Backend kodiga tegishli Python testlari va mavjud
+RAG regressiya testlari ham oʻtdi. Biroq joriy muhitda FastAPI, Uvicorn,
+RAG indeks va model serveri oʻrnatilmagan. Shu sababli serverni ishga
+tushirish hamda haqiqiy til modeli bilan huquqiy javob/citation tekshiruvi
+bu muhitda bajarilmadi.
+
+========================================================================
+2. MAHSULOTNING VAZIFASI VA FOYDALANUVCHI OQIMI
+========================================================================
+
+Asosiy oqim:
+1. Foydalanuvchi huquqiy vaziyatini oddiy tilda kiritadi.
+2. Maxfiy maʼlumotga oʻxshash ayrim identifikatorlar backendga yuborilishidan
+   oldin berkitiladi.
+3. Frontend oldingi user/assistant xabarlarini shu chat kontekstida backendka
+   yuboradi.
+4. Mavjud RAG pipeline savolni tahlil qilib, kerakli maqolalarni izlaydi,
+   aniq modda soʻrovini deterministik tarzda hal qiladi yoki model orqali
+   manbaga tayangan javob tayyorlaydi.
+5. Javob Server-Sent Events (SSE) orqali oqimda keladi. Yakuniy SSE bo‘lagida
+   keladigan citation va retrieval metadata ham foydalanuvchiga yetkaziladi.
+6. Manbalar javobdan ajratilgan kartalarda koʻrsatiladi; lex.uz hujjat
+   identifikatori mavjud bo‘lsa, u haqiqiy backend maydoni asosida havolaga
+   aylantiriladi.
+
+Interfeysda doimiy ko‘rinadigan izoh:
+“Bu AI huquqiy maʼlumot beradi, advokat emas. Javoblar yuridik maslahat yoki
+ish natijasi kafolati emas. Qonunning amaldagi tahririni lex.uz’dan tekshiring.”
+
+Ilovada yangi suhbat, saqlangan suhbatni qayta ochish, suhbatni oʻchirish,
+barcha tarixni tozalash, javobni nusxalash, xatodan qayta urinish, javobni
+toʻxtatish va bir nechta misol savollar mavjud. Enter yuboradi; Shift+Enter
+yangi qator kiritadi. Mobil ekranda suhbatlar paneli ochiladi/yopiladi.
+
+Oʻzbek lotin tili interfeys tili. Mavjud RAG promptlari lotin, kirill va rus
+tilidagi huquqiy savollar uchun saqlangan; aniqlashtiruvchi savol va xavfsizlik
+koʻrsatmalari promptlarga qoʻshilgan. Haqiqiy model javobini ushbu muhitda
+sinab boʻlmagani uchun tillararo javob sifati tasdiqlanmagan.
+
+========================================================================
+3. MAVJUD KORPUS VA RAG BACKEND
+========================================================================
+
+Korpus:
+- 25 ta qonun va kodeks.
+- 7 368 ta citable maqola.
+- Har bir maqola data/articles/*.jsonl ichida tuzilmali yozuv sifatida.
+- Manba: lex.uz.
+- Versiya: 2026-07 snapshot.
+- Snapshot amaldagi qonun matnining kafolati emas; lex.uz rasmiy va joriy
+  manba sifatida tekshirilishi shart.
+
+Backend:
+- FastAPI ilovasi: rag/server.py.
+- Mavjud retrieval va generation pipeline: rag/pipeline.py, retriever.py,
+  corpus_index.py va ular ishlatadigan yordamchi modullar.
+- Endpointlar:
+  GET /health
+  GET /v1/models
+  POST /retrieve
+  POST /v1/chat/completions
+  Yangi brauzer endpointi: POST /api/chat/completions
+- /retrieve faqat code va article_id identifikatorlarini beradi; u maqola
+  matni sifatida yoki citation isboti sifatida ishlatilmaydi.
+- /v1/chat/completions mavjud OpenAI-mos JSON hamda SSE formatini saqlaydi.
+  SSE yakuniy chunkida citations, retrieval_mode va mavjud boʻlsa usage
+  metadata qaytariladi.
+- Yangi brauzer endpointi mavjud pipelinega boradi va server API kalitini
+  frontendga uzatmaydi.
+
+========================================================================
+4. TEXNOLOGIYA VA LOYIHA ARXITEKTURASI
+========================================================================
+
+Frontend:
+- TypeScript, Vite, brauzerning native DOM API.
+- Qoʻshimcha UI framework yoki ikon kutubxonasi talab qilinmaydi.
+- Streaming/API kontraktlari web/src/api.ts da type-safe tarzda ifodalangan.
+- Chat, tarix, manbalar va interfeys web/src/main.ts da.
+- Responsive dizayn va klaviatura/accessibility uslublari web/src/style.css da.
+- Xavfsiz lokal matnni berkitish yordamchisi web/src/privacy.ts da.
+- Statik sahifa va metadata web/index.html da.
+- Build natijasi web/dist/ ga yoziladi.
+
+Backend:
+- Python/FastAPI mavjud serveri kengaytirildi, qaytadan yozilmadi.
+- Sozlamalar rag/config.py da.
+- Rate limit: rag/chat_rate_limit.py.
+- Shaxsiy maʼlumotga oʻxshash satrlarni berkitish: rag/privacy.py.
+- RAG generation promptlari: rag/pipeline.py va rag/situation_prompt.py.
+
+Ishga tushirish:
+- scripts/dev.mjs frontend va backend jarayonlarini bitta komandadan boshlaydi.
+- Vite /api soʻrovlarini RAG backendka uzatadi.
+- Production build qilinganda FastAPI web/dist/ sahifasi va /assets fayllarini
+  taqdim etadi.
+- Vite proxy porti RAG_PORT yoki RAG_PROXY_TARGET orqali sozlanadi.
+
+========================================================================
+4A. HUQUQ AI ADMIN CONTROL CENTER
+========================================================================
+
+Admin konsol:
+- Production: FastAPI ilovasidagi /admin va /api/admin/* yoʻllari.
+- Development: npm run dev ishga tushirgach http://127.0.0.1:5173/admin.
+- Citizen chat / yoʻlida qoladi; admin uchun alohida web/admin/index.html
+  entry-point mavjud.
+- TypeScript native DOM asosida; dark/light mavzu, collapsible/mobile nav,
+  route hash, ⌘/Ctrl+K palette, command search, drawers, notifications,
+  keyboard navigation, error/loading/toast va responsive table UI mavjud.
+- Admin sahifalar: overview, model health/configuration, usage, prompt
+  read-only viewer, evaluation dataset, document explorer, article detail,
+  corpus provenance, pipeline status, document intelligence status,
+  security posture va infrastructure/GPU.
+
+Maʼlumot va cheklov:
+- Hujjat/modda qidiruv real manifest.csv va yuklangan RAG indexdan.
+- Source hashes manifest.csv SHA-256 qiymat; article text getArticleDetail
+  backend endpointidan. lex.uz URL faqat backenddagi numeric document ID
+  mavjud boʻlganda yaratiladi.
+- Snapshot UI'da 2026-07 deb bildiriladi; qonun amaldagi holatini lex.uz’dan
+  tekshirish kerak.
+- Soʻrov, token, citation count, latency va retrieval mode process memory'da
+  rolling 24-hour bo‘yicha agregat; prompt yoki answer matni saqlanmaydi.
+  Restartda tozalanadi va workerlar orasida bo‘lishilmaydi. SSE yakunlanishi
+  alohida hisoblanib, bir stream ikki marta event sifatida yozilmaydi;
+  mijoz uzgan stream 499 bilan belgilanadi.
+- /v1/models health probe latency model inference latency hisoblanmaydi.
+- User analytics, persistent audit log, billing/cost, ingestion queue,
+  historical corpus versions va PDF/DOCX processing mavjud emas; UI
+  maʼlumotni uydirmasdan “ulanmagan” deb ko‘rsatadi.
+- Console read-only; konfiguratsiyani tahrirlash, sync/retry, document upload
+  yoki security eventlarni o‘zgartirish tugmalari mavjud emas.
+
+Admin xavfsizligi:
+- Admin kirish username, PBKDF2-SHA256 parol xeshi va alohida 32+ belgili
+  session-signing secret talab qiladi. Yetishmasa admin API fail-closed
+  503 qaytaradi.
+- Parol brauzer storage’iga yozilmaydi. Muvaffaqiyatli login 8 soatlik
+  imzolangan HttpOnly, SameSite=Strict cookie beradi; HTTPS’da Secure flag
+  yoqiladi. Logout cookie’ni server javobi bilan o‘chiradi; sahifani qayta
+  ochish cookie amal qilsa login formasini aylanib o‘tadi.
+- Admin API so‘rovlari same-origin maxsus header bilan tekshiriladi;
+  muvaffaqiyatsiz login uchun limiter process-local.
+- Admin login urinishlari uchun 5/60s default process-local limiter mavjud;
+  persistent log yoki multi-worker shared limiter emas.
+- Admin sahifasida same-origin Content-Security-Policy, no inline script,
+  frame denial va no-store API responses mavjud.
+- Production HTTPS, aniq CORS_ORIGINS, network edge protection va shared
+  rate-limit talab etiladi.
+
+========================================================================
+5. MAXFIYLIK VA XAVFSIZLIK
+========================================================================
+
+Suhbat tarixi:
+- Foydalanuvchi tarixi brauzer localStorage xotirasida saqlanadi.
+- Backend doimiy chat tarixini saqlamaydi.
+- Tarixni UI orqali tozalash yoki brauzer sozlamalaridan ushbu sayt
+  maʼlumotlarini oʻchirish mumkin.
+- Frontend qayta ishga tushganda yarim qolgan stream xato holatiga oʻtkaziladi.
+
+Loglash:
+- Toʻliq savol-javob loglari standart holatda oʻchiq.
+- Terminalga savol yoki javob matni yozilmaydi.
+- CHAT_LOG_ENABLED=true faqat metadata logini ixtiyoriy yoqadi: vaqt,
+  retrieval mode, citation soni, soʻrov davomiyligi. Savol, javob, citation
+  matni, API kaliti metadata logiga yozilmaydi.
+- Production reverse proxy/access loglarida request body yozilmasligi kerak.
+
+Maʼlumotni berkitish:
+- Frontend va backendda PINFL/JShShIR, karta, pasport va telefon raqamiga
+  oʻxshash keng tarqalgan naqshlarni berkitish qoʻshilgan.
+- Redaction oqimi test qilingan.
+- Bu regexlar toʻliq DLP yoki shaxsni aniqlovchi barcha maʼlumotlarni
+  topadigan kafolatli tizim emas. Noyob formatlar, ish hujjati mazmuni,
+  manzil yoki ism kabi maʼlumotlar qolishi mumkin.
+- Foydalanuvchiga maxfiy hujjat va keraksiz identifikator yubormaslik
+  interfeysda eslatiladi; backend promptlari ham bu maʼlumotni soʻramaslik
+  va javobda takrorlamaslikni ko‘rsatadi.
+
+API, CORS, cheklovlar:
+- CORS wildcard "*" taqiqlangan; CORS_ORIGINS aniq origin allowlistidir.
+- Standart local allowlist: localhost:5173 va 127.0.0.1:5173.
+- Brauzer chatiga PUBLIC_CHAT_RATE_LIMIT/IP sliding-window rate limiter
+  qoʻshilgan; standart 10 soʻrov / 60 soniya.
+- Ushbu limit har bir backend process ichida. Bir nechta worker yoki
+  instansiyada umumiy limit uchun reverse proxy/API gatewayda qoʻshimcha
+  shared rate limiting talab qilinadi.
+- Request hajmi, xabarlar soni va umumiy matn hajmi cheklangan.
+- API security headers: X-Content-Type-Options, X-Frame-Options,
+  Referrer-Policy, Permissions-Policy; chat va retrieve API javoblari
+  cache qilinmaydi.
+- Legacy /v1/chat/completions va /retrieve endpointlari TOMARIS_API_KEYS
+  server muhitida sozlash bilan himoyalanadi. Public /api/chat/completions
+  browser endpointi bu kalitlardan foydalanmaydi. Maxfiy kalitlar hech qachon
+  VITE_* env, browser bundle yoki repoga qoʻyilmasin.
+- Productionda HTTPS/TLS, reverse proxy, request-size limit, ishonchli host
+  siyosati va server secrets boshqaruvi alohida sozlanishi lozim.
+
+Bu himoyalar professional penetration test yoki toʻliq production security
+audit oʻrnini bosmaydi.
+
+========================================================================
+6. SOZLAMALAR
+========================================================================
+
+.env.example namunaviy qiymatlarni beradi. U real secretlarni saqlamaydi.
+Python .env faylini avtomatik yuklamaydi; qiymatlarni server muhitiga export
+qilish kerak.
+
+Asosiy parametrlar:
+- RAG_HOST: FastAPI bind manzili; standart 127.0.0.1.
+- RAG_PORT: FastAPI porti; standart 8000.
+- RAG_PROXY_TARGET: Vite proxy uchun alohida backend URL (ixtiyoriy).
+- VLLM_BASE: OpenAI-mos vLLM serverining /v1 URL manzili.
+- VLLM_MODEL: vLLM model/LoRA nomi; standart tomaris.
+- MODEL_TIMEOUT_SECONDS: model soʻrovining timeout qiymati.
+- QUERY_DEVICE: query embedding qurilmasi; standart cpu.
+- BUILD_DEVICE: indeks build qurilmasi. Setup misolida cpu ishlatiladi;
+  GPU qurilmasi mos muhitda alohida sozlanadi.
+- CORS_ORIGINS: ishonchli frontend originlarining vergul bilan ajratilgan
+  roʻyxati.
+- PUBLIC_CHAT_RATE_LIMIT: bitta IP uchun oynadagi soʻrovlar soni.
+- PUBLIC_CHAT_RATE_WINDOW_SECONDS: rate limit oynasi soniyalarda.
+- CHAT_LOG_ENABLED: standart false; faqat metadata logging uchun opt-in.
+- CHAT_LOG: metadata yoziladigan server fayli; logging yoqilgandagina kerak.
+- VITE_CHAT_ENDPOINT: ixtiyoriy, kalit bo‘lmagan browser API path.
+- TOMARIS_API_KEYS: faqat server muhitidagi optional secret; .env.example ga
+  secret qiymat qoʻshilmagan.
+
+========================================================================
+7. OʻRNATISH VA ISHGA TUSHIRISH
+========================================================================
+
+Talablar:
+- Node.js 20.19 yoki undan yangi (yoki Node.js 22.12+).
+- Python 3.10+ va rag/requirements.txt dependencylari.
+- Lokal build qilingan RAG indeksi.
+- RAG serveri bilan mos OpenAI-compatible vLLM endpoint va model.
+- Model weights va GPU ushbu repository ichiga kiritilmagan.
+
+Oʻrnatish:
+
+  npm install
+  python3 -m venv .venv
+  .venv/bin/pip install -r rag/requirements.txt
+
+Indeksni birinchi marta qurish:
+
+  cd rag
+  BUILD_DEVICE=cpu ../.venv/bin/python build_index.py
+  cd ..
+
+RAG backend va frontendni ishga tushirish:
+
+  VLLM_BASE=http://127.0.0.1:8001/v1 npm run dev
+
+Brauzer:
+
+  http://127.0.0.1:5173
+
+vLLM servisi oldindan ishga tushgan va VLLM_BASE ga mos bo‘lishi kerak.
+Port 8000 band bo‘lsa:
+
+  RAG_PORT=8010 npm run dev
+
+Alohida ishga tushirish:
+
+  .venv/bin/uvicorn server:app --app-dir rag --host 127.0.0.1 --port 8000
+  npm run dev:web
+
+Production build/preview:
+
+  npm run build
+  npm run preview
+
+Yoki FastAPI orqali web/dist/ kontentini HTTPS reverse proxy orqasida
+taqdim etish mumkin.
+
+========================================================================
+8. OʻZGARGAN VA YANGI FAYLLAR
+========================================================================
+
+Frontend:
+- package.json, package-lock.json: skriptlar va minimal frontend dependencylar.
+- tsconfig.json: qatʼiy TypeScript sozlamalari.
+- tsconfig.tests.json: TypeScript API/privacy test build sozlamalari.
+- vite.config.ts: chat/admin multi-page build, development route va API proxy.
+- web/index.html: ilovaning kirish sahifasi, til va snapshot izohlari.
+- web/admin/index.html: alohida admin console entry-point.
+- web/src/admin/main.ts: admin shell, navigatsiya, real-data sahifalar va
+  interactive boshqaruv oqimlari.
+- web/src/admin/api.ts: cookie-session admin API client va data turlari.
+- web/src/admin/tokens.css: dark/light design tokens, responsive admin UI.
+- web/public/favicon.svg: ilova belgisi.
+- web/src/main.ts: suhbatlar, browser tarixi, streaming UI, citation va harakatlar.
+- web/src/api.ts: SSE istemolchisi, type-safe citation va API xatolari.
+- web/src/privacy.ts: browser tarafidagi sensitive string maskalash.
+- web/src/style.css: responsive, klaviatura va reduced-motion uslublari.
+- scripts/dev.mjs: bir buyruq bilan frontend/backend development launcher.
+- tests/frontend.test.mjs: stream, xato, cancellation va redaction testlari.
+
+Backend:
+- rag/server.py: public chat endpoint, CORS, log siyosati, security headers,
+  web static hosting, UI/admin server integratsiyasi va admin API.
+- rag/config.py: chat metadata logging, timeout, rate-limit va admin auth settings.
+- rag/chat_rate_limit.py: process-local sliding-window limit.
+- rag/admin_security.py, rag/admin_telemetry.py, rag/admin_data.py: password
+  hashing, signed session auth, privacy-
+  privacy-saqlovchi metrikalar va real corpus read helpers.
+- rag/privacy.py: umumiy identifikatorlarni berkitish yordamchisi.
+- rag/test_privacy.py: redaction unit testlari.
+- rag/test_chat_rate_limit.py: rate-limit unit testlari.
+- rag/test_admin_console.py: admin auth, korpus manifest/search, telemetry
+  helper unit testlari.
+- rag/pipeline.py: ruscha modda lookup prompti, identifikator siyosati,
+  emergency/clarification yoʻriqnomalari va model timeout.
+- rag/situation_prompt.py: aniqlashtirish, amaliy qadamlar, maxfiylik va
+  favqulodda holat yoʻriqnomalari; ruscha va lotincha prompt tanlovi.
+
+Hujjatlar/sozlamalar:
+- .env.example: secretlarsiz local/backend sozlama namunasi.
+- .gitignore: node_modules, web/dist, test transpile va Python cache ignore.
+- README.md: mahsulotni oʻrnatish, ishga tushirish, konfiguratsiya va deploy.
+- rag/README.md: backend endpoint, streaming, privacy va deploy izohlari.
+- PROJECT_REPORT.txt: ushbu loyiha hisoboti.
+
+========================================================================
+9. BAJARILGAN TEKSHIRUVLAR
+========================================================================
+
+Oʻtgan frontend tekshiruvlari:
+- npm run build: muvaffaqiyatli; TypeScript compiler va Vite production build.
+- npm run typecheck: muvaffaqiyatli.
+- `npm test`: hozirgi suite bo‘yicha 13/13 test oʻtdi.
+- npm audit --omit=dev: 0 vulnerability qaytardi.
+- Node dev launcher syntax check: oʻtdi.
+- Browser smoke test: Vite development va production build sahifalari ochildi.
+- Koʻp-turnli suhbat: ikkinchi soʻrovda avvalgi user/assistant xabarlari
+  request bodyga qoʻshilishini tekshirildi.
+- SSE parsing va haqiqiy API shaklidagi citation yakuniy metadata tekshirildi.
+- Xato, notoʻgʻri/missing citation metadata va backend yoʻqligi oqimlari
+  sinovdan oʻtdi; sunʼiy javob ko‘rsatilmasligi tekshirildi.
+- Abort/cancel unit testidan oʻtdi.
+- Shift+Enter yangi qator kiritishi va Enter submit qilishi brauzerda tekshirildi.
+- Mobil suhbatlar paneli, browser-local tarix, tarixni qayta ochish va
+  conversation oʻchirish tekshirildi.
+- 375, 390, 768, 1024 va 1440 px viewportlarda gorizontal overflow
+  aniqlanmadi.
+- Maxfiy identifikatorlar brauzer storage va chat matniga raw holatda
+  tushmasligi tekshirildi.
+
+Oʻtgan Python/RAG tekshiruvlari:
+- rag/test_privacy.py va rag/test_chat_rate_limit.py: 5 test oʻtdi.
+- rag/test_guardrails.py: corpus, citation va article guardrails oʻtdi.
+- rag/test_customer_readiness.py: customer readiness regressiyalari oʻtdi.
+- rag/test_normalize_query.py: oʻtdi.
+- rag/test_pack_context.py: oʻtdi.
+- rag/test_code_keywords.py: oʻtdi.
+- Oʻzgartirilgan Python modullarida py_compile: oʻtdi.
+
+Muayyan mavjud RAG test skriptlarining natijalari bevosita ularning CLI
+yakuniy holati va “all ... tests pass” xabarlari bilan tekshirildi.
+
+========================================================================
+10. MAʼLUM CHEKLOVLAR VA ISHLAB CHIQARISHGA CHIQARISHDAN OLDIN
+========================================================================
+
+1. Joriy muhitda fastapi va uvicorn Python modullari mavjud emas; rag/index.json
+   ham mavjud emas. Shuning uchun bir buyruqli npm run dev ishlashi bu muhitda
+   sinovdan oʻtmadi. npm run dev backend jarayonini boshlamoqchi boʻlganda
+   “No module named uvicorn” bilan toʻxtadi. Bu hujjatdagi o‘rnatish qadamlarini
+   bajarish zarurligini ko‘rsatadi.
+2. vLLM model endpoint, model weights va GPU ishlatilmadi/mavjud emas. Haqiqiy
+   yuridik javob, reasoning, aniqlashtirish xulqi, citation aniqligi va real
+   model latency toʻliq end-to-end tekshirilmagan.
+3. Frontend brauzerda stubbed SSE javoblar bilan ko‘p-turnli va citation
+   oqimlari uchun sinovdan o‘tdi; bu haqiqiy RAG model tekshiruvi emas.
+4. Python backendning o‘ziga mos unit va mavjud pipeline testlari ishladi,
+   ammo yangi FastAPI endpointlari bilan TestClient/integration smoke test
+   bu muhitda bajarilmadi, chunki FastAPI/Uvicorn o‘rnatilmagan.
+5. Sliding-window limiter bitta process xotirasida ishlaydi; multi-worker
+   productionda reverse proxy yoki taqsimlangan rate limiter shart.
+6. Redaction keng tarqalgan shakllarga asoslanadi, lekin to‘liq DLP emas.
+   Maxfiy ish hujjatlarini yubormaslik kerak.
+7. Production deploy, TLS, domen, monitoring, log retention, backup va
+   operational alerting ushbu ishda provision qilinmagan.
+8. Korpus 2026-07 snapshot. Qonunchilik o‘zgarishini avtomatik sinxronlash
+   yo‘q; amaldagi qonun lex.uz orqali tekshirilishi shart.
+
+Tavsiya etilgan production oldi amallari:
+- Backend requirements o‘rnatish, haqiqiy model endpointini ulash va indeksni
+  qurish.
+- FastAPI TestClient orqali /api/chat/completions, /v1/chat/completions,
+  CORS, xato shakllari, rate limiting, SSE metadata va cancellation
+  holatlarini integration test qilish.
+- Lotin, kirill va rus savollari uchun real modelga oid huquqiy eval
+  datasetini ishga tushirish; modda/muddat/citation hallucinationlarini
+  alohida tekshirish.
+- Reverse proxy orqali HTTPS, shared rate limiting, request body logging
+  o‘chirilishi, server error observability va incident response sozlash.
+- Yirik ekran/telefonlar bilan birga screen reader va klaviatura
+  accessibility tekshiruvini alohida bajarish.
+
+========================================================================
+11. YAKUNIY XULOSA
+========================================================================
+
+Kod darajasida responsive web ilova, chat API client, mavjud RAG server
+integratsiyasi, SSE stream, citation kartalari, browser-only tarix,
+maxfiylikka oid boshlangʻich himoyalar, konfiguratsiya va hujjatlar tayyor.
+Frontend build va browser interaksiyalari hamda Python/RAG regressiya testlari
+tekshirildi.
+
+Ilovani real foydalanuvchilarga huquqiy javob beradigan production servis
+sifatida qabul qilishdan oldin backend dependencylari, retrieval indeksi,
+ishlaydigan til modeli va production infratuzilmasini ulab, haqiqiy end-to-end
+legal QA/eval va security deployment tekshiruvlarini bajarish zarur.
+
+========================================================================
+12. ADMIN CONSOLE ISHI VA TEKSHIRUV HOLATI
+========================================================================
+
+Admin UI va API:
+- /admin alohida shell; citizen chat / yoʻli o‘zgartirilmagan.
+- Admin FastAPI route-larida same-origin Content-Security-Policy, no-store
+  API javoblari va frame denial headerlari bor.
+- Login forma username/parol bilan ishlaydi; parol PBKDF2-SHA256 hash orqali
+  tekshiriladi. 8 soatlik signed HttpOnly cookie sessiyasi, logout va
+  sessiya tugaganda qayta login holati mavjud.
+- API so‘rovlari 15 soniyalik timeout va ulanish xatosini tushunarli
+  ko‘rsatadigan xatoga ega.
+- Overview haqiqiy corpus/model/process maʼlumotlari va process-local
+  request telemetry’ni ko‘rsatadi. Mavjud bo‘lmagan data source uchun
+  placeholder metrika qo‘shilmagan.
+- Document/article browser pagination va qidiruv endpointlaridan, article
+  detail esa /api/admin/corpus/article endpointidan foydalanadi. Jadval
+  exporti faqat joriy real sahifadagi yozuvlarni chiqaradi.
+- Dark/light theme, expandable/mobile nav, keyboard command palette,
+  drawers, theme switch, current-page sort, notifications/status details,
+  loading/error recovery va reduced-motion CSS mavjud. Command palette
+  maqola hamda hujjat qidiruviga olib boradi; soʻrov grafigining jadval
+  alternativasi mavjud.
+- Bildirishnomalar ochilganda overview API'dan yangi status olinadi; model
+  holati va muvaffaqiyatsiz soʻrovlar ko‘rsatiladi. Bu alerting yoki audit
+  log emas. Grafik sanalarini formatlash va jadval alternativa UI smoke
+  tekshiruvida tekshirildi. Modelning `online`, `degraded` va `offline`
+  holatlari shell statusida bir-biridan ajratiladi.
+
+Admin uchun bajarilgan tekshiruv:
+- `npm run typecheck`: oʻtdi.
+- `npm run build`: TypeScript check va multi-page Vite production build oʻtdi.
+- `npm test`: 16/16 citizen chat va admin API testlari oʻtdi.
+- `rag/test_admin_console.py`: 14 ta backend unit testi, jumladan password
+  hash, signed-session expiry/tamper va telemetry regressiyalari oʻtdi.
+- `rag/test_admin_auth_api.py`: FastAPI admin session/logout route’lari
+  TestClient bilan, modelni yuklamasdan tekshirildi (HTTPS cookie flags,
+  login, CSRF header, rate limit va logout).
+- Izolyatsiyalangan FastAPI/HTTPX muhitida admin, auth API, privacy va chat
+  rate-limit to‘plami: 19/19 test oʻtdi.
+- Vaqtinchalik izolyatsiyalangan Python muhitida `(cd rag && python test_api_keys.py)`
+  API-key auth/cap, usage persistence, concurrent admission va mini-FastAPI
+  wiring tekshiruvlaridan oʻtdi. Bu asosiy RAG `server.py` uchun to‘liq
+  model/indeks end-to-end testi emas.
+- `rag/` katalogidan `test_customer_readiness.py`, `test_guardrails.py`,
+  `test_normalize_query.py`, `test_pack_context.py`, `test_code_keywords.py`,
+  `test_routing.py`, `test_situation.py` va `test_situation_prompt.py`
+  standalone regressiya tekshiruvlari ham oʻtdi.
+- `rag/server.py`, `rag/admin_data.py`, `rag/admin_security.py`,
+  `rag/admin_telemetry.py` va `rag/test_admin_auth_api.py` uchun `py_compile`:
+  oʻtdi.
+- `/admin` dev route integrated browserda alohida HUQUQ AI admin console
+  sahifasini ko‘rsatdi.
+- Lokal API fixture bilan admin login, overview, live status bildirishnomasi
+  grafik-jadval alternativasi, `degraded` model status label/indikatori
+  brauzerda tekshirildi. Fixture haqiqiy backend yoki production maʼlumoti
+  emas.
+- UI smoke testda lokal API fixture bilan login, barcha 11 navigatsiya
+  bo‘limi, article detail drawer, mobil nav, theme va command palette ishlashi
+  tekshirildi. 375px, 768px, 844px landscape, 1024px va 1440px viewportlarda
+  hujjat sahifasida document-level gorizontal overflow topilmadi.
+- Fixture qiymatlari faqat UI test uchun ishlatildi; production frontendda
+  mock data fallback mavjud emas.
+- Backend integratsiya/sahifa navigatsiyasini browserda to‘liq tekshirish
+  ushbu muhitda yakunlanmadi: FastAPI/RAG service yo‘q, 8000 portida
+  FastAPI bo‘lmagan boshqa service turibdi va embedded browserdan Vite proxy
+  API so‘rovi javob olmadi. Timeout va network error UI hozir API client test
+  va browserda muvaffaqiyatli ko‘rsatildi; haqiqiy server credentiallari bilan
+  kirish, real corpus/model data test qilinmadi.
+
+Production chegaralari:
+- Server muhitida `HUQUQ_ADMIN_USERNAME`, `HUQUQ_ADMIN_PASSWORD_HASH` va
+  alohida 32+ belgili `HUQUQ_ADMIN_SESSION_SECRET` sozlanishi shart.
+- Muvaffaqiyatli login 8 soatlik stateless imzolangan cookie beradi; logout
+  browser cookie’ni o‘chiradi, ammo server tomon cookie revocation store yo‘q.
+- Barcha backend workerlar bir xil session-signing secret ishlatishi kerak.
+- RBAC, persistent audit log va foydalanuvchi akkauntlari implementatsiya
+  qilinmagan.
+- Admin telemetry va failed-login limiter process-local; multi-worker yoki
+  multi-instance deploymentda shared rate-limit/storage qatlamiga ehtiyoj bor.
+- Haqiqiy model health, GPU, performance, 2026-07 corpus data va citationsni
+  tekshirish uchun productionga yaqin backend va model server kerak.

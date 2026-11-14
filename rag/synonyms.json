@@ -1,0 +1,54 @@
+[
+  {"when": ["armiya", "armiyaga", "armiga", "armiyada", "armiyu", "askarlik", "askar",
+            "harbiy", "harbiy xizmat", "chaqiruv", "chaqiriq", "chaqiriluvchi",
+            "soldat", "soldatga", "mudofaa", "srochka", "povestka",
+            "dezertirlik", "dezertir"],
+   "add": "harbiy xizmatga chaqiruvdan boʻyin tovlash muddatli harbiy xizmat muqobil xizmat harbiy majburiyat dezertirlik chaqiruv mudofaa ishlari"},
+
+  {"when": ["ishdan haydash", "ishdan hayda", "ishdan boʻshatish", "ishdan boshatish",
+            "ishdan chiqarish", "ishdan boʻshat"],
+   "add": "mehnat shartnomasini bekor qilish xodimni ishdan boʻshatish asoslari"},
+
+  {"when": ["oylik", "oylig", "maosh", "ish haqi", "ish haqim", "ish haqqi", "zarplata"],
+   "add": "ish haqini toʻlash muddatlari har yarim oyda"},
+
+  {"when": ["taʼtil", "tatil", "otpusk"],
+   "add": "mehnat taʼtili yillik asosiy taʼtil"},
+
+  {"when": ["ajrashish", "taloq", "ajralish"],
+   "add": "nikohni bekor qilish er-xotinning ajralishi"},
+
+  {"when": ["aliment", "alimet", "alimenty"],
+   "add": "aliment undirish voyaga yetmagan bolalarni taʼminlash"},
+
+  {"when": ["oʻgʻrilik", "oʻgʻirlik", "ogirlik", "oʻgʻirlash", "ogirlab", "ogirlash"],
+   "add": "oʻgʻrilik oʻzganing mol-mulkini yashirin ravishda talon-toroj qilish"},
+
+  {"when": ["pora", "korrupsiya"],
+   "add": "pora olish pora berish mansabdorlik jinoyatlari"},
+
+  {"when": ["uy sotish", "kvartira sotish", "uy sotib olish"],
+   "add": "koʻchmas mulkni oldi-sotdi shartnomasi"},
+
+  {"when": ["haydovchilik guvohnomasi", "yoʻl harakati", "avtohalokat", "tezlik"],
+   "add": "yoʻl harakati qoidalarini buzish maʼmuriy javobgarlik"},
+
+  {"when": ["meros", "vorislik"],
+   "add": "merosni qabul qilish vasiyatnoma qonun boʻyicha vorislik"},
+
+  {"when": ["suv bosdi", "toshqin", "uyimni suv", "suv ostida", "zalil"],
+   "add": "ijara shartnomasi zarar yetkazish mulkka yetkazilgan zararni qoplash ijaraga beruvchining majburiyatlari"},
+
+  {"when": ["kredit", "qarz", "pul toʻlamadim", "pul tolamadim", "pul toʻlamasa"],
+   "add": "qarz shartnomasi kredit shartnomasi majburiyatni bajarish"},
+
+  {"when": ["jarima", "shtraf", "nalog"],
+   "add": "maʼmuriy jarima javobgarlik choralari soliq toʻlamaganlik"},
+
+  {"when": ["urishib", "urish", "urib", "qamash", "qamashadi", "qamoq", "kaltak",
+            "janjal", "hibsga", "haqorat"],
+   "add": "yengil tanaga shikast yetkazish kaltaklash haqorat mayda bezorilik Maʼmuriy javobgarlik"},
+
+  {"when": ["biznes ochish", "firma ochish", "yatt", "tadbirkorlik"],
+   "add": "tadbirkorlik faoliyati davlat roʻyxatidan oʻtkazish"}
+]
