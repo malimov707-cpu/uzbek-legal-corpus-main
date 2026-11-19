@@ -33,6 +33,7 @@ __pycache__/
 
 # Local web build and test output.
 node_modules/
+.venv/
 web/dist/
 .test-dist/
 

@@ -1,0 +1,24 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "npm: dev",
+            "type": "shell",
+            "command": "npm",
+            "args": ["run", "dev"],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "dev-server",
+                "pattern": [{ "regexp": "^$" }],
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^> huquqiy-yordam@.* dev$",
+                    "endsPattern": "Local:\\s+http://127\\.0\\.0\\.1:51\\d+/"
+                }
+            }
+        }
+    ]
+}

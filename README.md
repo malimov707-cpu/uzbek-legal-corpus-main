@@ -58,6 +58,42 @@ server at `VLLM_BASE` before asking questions. To run services separately, use
 `npm run dev`; the frontend proxy follows that port. The browser never receives
 an API key.
 
+### 3D conference speaker
+
+The interactive React/Three.js speaker page runs at
+[`/conference`](http://127.0.0.1:5173/conference). It uses the same RAG answer
+pipeline as the legal chat and can optionally speak answers with OpenAI TTS or
+ElevenLabs. Put a Ready Player Me GLB with Mixamo clips at
+`web/public/models/conference-speaker.glb`. Expected clip names are `Idle`,
+`Explaining_1`, `Explaining_2`, and `Gesture_Pointing`; the controller also
+matches close name variants and works with whichever clips are present. The
+model should include `Head` and `Neck` bones plus ARKit/Oculus morph targets
+such as `eyeBlinkLeft`, `eyeBlinkRight`, and `jawOpen`.
+
+Without a TTS key, the browser uses `speechSynthesis` with simulated lip
+movement. Optional server-only settings are `TTS_PROVIDER=openai` with
+`OPENAI_TTS_API_KEY`, or `TTS_PROVIDER=elevenlabs` with
+`ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID`. Install the UI packages with:
+
+```text
+web/
+  conference.html
+  public/models/conference-speaker.glb
+  src/
+    app/Page.tsx
+    components/avatar/{AvatarCanvas,AvatarModel,FallbackSpeaker}.tsx
+    hooks/useAvatarSpeech.ts
+    services/conferenceApi.ts
+    conference.tsx
+    conference.css
+rag/server.py  # POST /api/chat and optional server-side TTS
+```
+
+```bash
+npm install react react-dom three @react-three/fiber @react-three/drei
+npm install -D @vitejs/plugin-react@^5 @types/react @types/react-dom
+```
+
 For OpenRouter, set `OPENROUTER_MODEL` and `OPENROUTER_API_KEY` in the
 repository-root `.env` or server environment. If `VLLM_BASE` and `VLLM_MODEL`
 are not explicitly set, the backend selects OpenRouter's OpenAI-compatible API

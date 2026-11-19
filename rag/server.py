@@ -5,6 +5,7 @@ on the frontend changes except VAST_API_URL. `citations` is an extra top-level
 field -- clients that ignore it are unaffected.
 """
 import asyncio
+import base64
 import json
 import os
 import resource
@@ -30,7 +31,7 @@ from admin_security import AdminCredentials, AdminSession, FailedLoginGuard
 from admin_telemetry import RequestTelemetry
 from api_keys import KeyAuth, KeyAuthError
 from chat_rate_limit import SlidingWindowLimiter
-from privacy import redact_messages
+from privacy import redact_messages, redact_sensitive_text
 from request_shape import (history_and_context, last_question,
                            normalize_messages)
 from pipeline import (UpstreamUnavailable, get_rag, history_len,
@@ -163,6 +164,17 @@ def admin_frontend(admin_path: str = ""):
     return FileResponse(index)
 
 
+@app.get("/conference")
+@app.get("/conference/")
+def conference_frontend():
+    page = _web_dist / "conference.html"
+    if not page.is_file():
+        return JSONResponse(status_code=503, content={
+            "error": "Frontend is not built. Run npm run build from the repository root."
+        })
+    return FileResponse(page)
+
+
 @app.get("/favicon.svg")
 def favicon():
     icon_path = _web_dist / "favicon.svg"
@@ -173,6 +185,59 @@ def favicon():
 
 def _client_id(request: Request) -> str:
     return request.client.host if request.client else "unknown"
+
+
+def _synthesize_speech(text: str) -> tuple[str | None, str | None, str | None]:
+    """Return optional speech bytes as base64; credentials stay server-side."""
+    provider = os.getenv("TTS_PROVIDER", "openai").strip().lower()
+    if provider == "elevenlabs":
+        api_key = os.getenv("ELEVENLABS_API_KEY", "").strip()
+        voice_id = os.getenv("ELEVENLABS_VOICE_ID", "").strip()
+        if not api_key or not voice_id:
+            return None, None, None
+        payload = json.dumps({
+            "text": text,
+            "model_id": os.getenv("ELEVENLABS_TTS_MODEL", "eleven_multilingual_v2"),
+            "voice_settings": {"stability": 0.48, "similarity_boost": 0.78},
+        }).encode("utf-8")
+        request = URLRequest(
+            f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+            data=payload,
+            headers={
+                "xi-api-key": api_key,
+                "Content-Type": "application/json",
+                "Accept": "audio/mpeg",
+            },
+            method="POST",
+        )
+        mime = "audio/mpeg"
+        provider_name = "elevenlabs"
+    else:
+        api_key = os.getenv("OPENAI_TTS_API_KEY", "").strip()
+        if not api_key:
+            return None, None, None
+        payload = json.dumps({
+            "model": os.getenv("OPENAI_TTS_MODEL", "gpt-4o-mini-tts"),
+            "voice": os.getenv("OPENAI_TTS_VOICE", "alloy"),
+            "input": text[:12_000],
+            "response_format": "mp3",
+        }).encode("utf-8")
+        request = URLRequest(
+            "https://api.openai.com/v1/audio/speech",
+            data=payload,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        mime = "audio/mpeg"
+        provider_name = "openai"
+    with urlopen(request, timeout=45) as response:
+        audio = response.read(12_000_001)
+    if not audio or len(audio) > 12_000_000:
+        raise ValueError("TTS response was empty or exceeded the audio limit")
+    return base64.b64encode(audio).decode("ascii"), mime, provider_name
 
 
 def _require_admin_request_header(request: Request) -> None:
@@ -623,6 +688,71 @@ async def retrieve(req: Request):
 @app.post("/api/chat/completions")
 async def web_chat(req: Request):
     return await _chat(req, public=True)
+
+
+@app.post("/api/chat")
+async def conference_chat(req: Request):
+    """Ground a conference-speaker answer in the existing legal RAG pipeline."""
+    try:
+        raw_body = await req.body()
+        if len(raw_body) > 20_000:
+            return JSONResponse(status_code=413, content={"error": "Savol hajmi juda katta."})
+        body = json.loads(raw_body)
+        message = body.get("message") if isinstance(body, dict) else None
+        if not isinstance(message, str) or not message.strip():
+            return JSONResponse(status_code=400, content={"error": "Savol matnini kiriting."})
+        message = redact_sensitive_text(message.strip())
+        if len(message) > 2_000:
+            return JSONResponse(status_code=413, content={"error": "Savol 2 000 belgidan oshmasligi kerak."})
+    except (ValueError, json.JSONDecodeError):
+        return JSONResponse(status_code=400, content={"error": "JSON so‘rov formati noto‘g‘ri."})
+
+    if not _public_chat_limiter.allow(_client_id(req)):
+        return JSONResponse(
+            status_code=429,
+            headers={"Retry-After": str(C.PUBLIC_CHAT_RATE_WINDOW_SECONDS)},
+            content={"error": "So‘rovlar soni chekloviga yetdingiz. Birozdan so‘ng qayta urinib ko‘ring."},
+        )
+
+    metric_started = _request_telemetry.begin()
+    usage_started = history_len()
+    started_at = time.time()
+    try:
+        rag = await run_in_threadpool(get_rag)
+        result = await run_in_threadpool(rag, question=message)
+    except UpstreamUnavailable:
+        _request_telemetry.finish(metric_started, status=503)
+        return JSONResponse(status_code=503, content={"error": "Til modeli hozir javob bermayapti."})
+    except Exception as error:
+        print(f"[conference-chat-failed] {type(error).__name__}")
+        _request_telemetry.finish(metric_started, status=503)
+        return JSONResponse(status_code=503, content={"error": "Javob tayyorlashda xatolik yuz berdi."})
+
+    answer = str(result.answer).strip()
+    _log_chat_metadata(result.mode, result.citations, started_at)
+    try:
+        audio_base64, audio_mime_type, tts_provider = await run_in_threadpool(
+            _synthesize_speech, answer
+        )
+    except Exception as error:
+        print(f"[conference-tts-failed] {type(error).__name__}")
+        audio_base64, audio_mime_type, tts_provider = None, None, None
+    usage = last_usage(usage_started)
+    _request_telemetry.finish(
+        metric_started,
+        status=200,
+        retrieval_mode=result.mode,
+        prompt_tokens=usage.get("prompt_tokens", 0),
+        completion_tokens=usage.get("completion_tokens", 0),
+        citation_count=len(result.citations),
+    )
+    return {
+        "answer": answer,
+        "citations": result.citations,
+        "audio_base64": audio_base64,
+        "audio_mime_type": audio_mime_type,
+        "tts_provider": tts_provider,
+    }
 
 
 @app.post("/v1/chat/completions")
